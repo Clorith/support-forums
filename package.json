@@ -1,0 +1,20 @@
+{
+	"name": "wporg-support-environment",
+	"version": "0.0.0",
+	"description": "wordpress.org/support website",
+	"author": "WordPress.org",
+	"license": "GPL-2.0-or-later",
+	"private": true,
+	"dependencies": {
+		"@wordpress/env": "4.1.3",
+		"@wordpress/scripts": "19.2.2",
+		"@wordpress/stylelint-config": "19.1.0"
+	},
+	"scripts": {
+		"create": "./bin/index.sh",
+		"wp-env": "wp-env",
+		"lint:php": "composer run lint",
+		"format:php": "composer run format",
+		"test:php": "wp-env run phpunit 'WP_MULTISITE=1 phpunit -c /var/www/html/wp-content/tests/phpunit/phpunit.xml --verbose'"
+	}
+}

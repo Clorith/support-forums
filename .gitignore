@@ -1,0 +1,33 @@
+/**/.DS_STORE
+/**/node_modules
+/vendor
+/**/build
+
+# Allow local environment overrides.
+.wp-env.override.json
+
+# Ignore the parent content directories…
+/public_html/wp-content/mu-plugins/*
+/public_html/wp-content/plugins/*
+/public_html/wp-content/themes/*
+/public_html/wp-content/uploads/*
+/public_html/wp-content/languages
+
+# And specifically include our plugins & themes.
+!/public_html/wp-content/plugins/support-forums
+!/public_html/wp-content/plugins/wporg-bbp-also-viewing
+!/public_html/wp-content/plugins/wporg-bbp-code-blocks-expand-contract
+!/public_html/wp-content/plugins/wporg-bbp-codexify
+!/public_html/wp-content/plugins/wporg-bbp-redirect
+!/public_html/wp-content/plugins/wporg-bbp-term-subscription
+!/public_html/wp-content/plugins/wporg-bbp-topic-archive
+!/public_html/wp-content/plugins/wporg-bbp-topic-resolution
+!/public_html/wp-content/plugins/wporg-bbp-user-badges
+!/public_html/wp-content/plugins/wporg-bbp-user-mention-autocomplete
+!/public_html/wp-content/plugins/wporg-bbp-user-moderation
+!/public_html/wp-content/plugins/wporg-bbp-version-dropdown
+!/public_html/wp-content/themes/wporg-support
+
+# Ignore built files inside our plugins & themes.
+/public_html/wp-content/themes/wporg-support/css/*.css
+/public_html/wp-content/themes/wporg-support/css/*.map

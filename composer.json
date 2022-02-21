@@ -45,6 +45,26 @@
 						"url": "https://meta.svn.wordpress.org/sites/",
 						"reference": "trunk/wordpress.org/public_html/wp-content/mu-plugins/pub/"
 					}
+				},
+				{
+					"name": "wordpress-meta/plugin-directory",
+					"type": "wordpress-plugin",
+					"version": "1",
+					"source": {
+						"type": "svn",
+						"url": "https://meta.svn.wordpress.org/sites/",
+						"reference": "trunk/wordpress.org/public_html/wp-content/plugins/plugin-directory/"
+					}
+				},
+				{
+					"name": "wordpress-meta/theme-directory",
+					"type": "wordpress-plugin",
+					"version": "1",
+					"source": {
+						"type": "svn",
+						"url": "https://meta.svn.wordpress.org/sites/",
+						"reference": "trunk/wordpress.org/public_html/wp-content/plugins/theme-directory/"
+					}
 				}
 			]
 		},
@@ -58,8 +78,11 @@
 		"wpackagist-plugin/wordpress-importer": "*",
 		"wordpress-meta/wporg": "1",
 		"wordpress-meta/pub": "1",
+		"wordpress-meta/plugin-directory": "1",
+		"wordpress-meta/theme-directory": "1",
 		"wporg/wporg-mu-plugins": "dev-trunk",
-		"wpackagist-plugin/bbpress": "*"
+		"wpackagist-plugin/bbpress": "*",
+		"wpackagist-plugin/jetpack": "10.2.1"
 	},
 	"require-dev": {
 		"dealerdirect/phpcodesniffer-composer-installer": "^0.7.0",
@@ -68,7 +91,8 @@
 		"wp-phpunit/wp-phpunit": "^5.4",
 		"phpunit/phpunit": "^7.5.20",
 		"rmccue/requests": "^1.8.1",
-		"yoast/phpunit-polyfills": "^1.0"
+		"yoast/phpunit-polyfills": "^1.0",
+		"wpackagist-plugin/user-switching": "*"
 	},
 	"scripts": {
 		"format": "phpcbf -p",

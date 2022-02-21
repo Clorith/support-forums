@@ -1,0 +1,36 @@
+name: Coding Standards
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: PHP Coding Standards
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+
+      - name: Version debug
+        run: |
+          php --version
+          composer --version
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v1
+        with:
+          path: ~/.composer/cache
+          key: dependencies-composer-${{ hashFile('composer.lock') }}
+
+      - name: Install Composer dependencies
+        working-directory: ./
+        run: composer install --no-progress --no-suggest --no-interaction
+
+      - name: Run PHP Code Sniffer
+        working-directory: ./
+        run: composer run lint

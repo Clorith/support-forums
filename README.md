@@ -41,6 +41,15 @@ Take note that no JavaScript files in the Support Environment require build step
 
 ## Your local environment
 
+Take note that the local setup is a single site, this comes with some drawbacks. You do not have the ability to things that require cross-referencing user accounts, such as (but not limited to):
+
+- Badges for:
+  - Theme authors
+  - Plugin authors
+  - Plugin support representatives
+- Limited features allowed to plugin or theme authors
+  - Sticky topics
+
 ---
 
 ### Starting your local environment
@@ -48,13 +57,7 @@ After setting up your environment for the first time, you are ready to use it at
 
 For subsequent runs, you can just use `npm run wp-env start` to start the environment.
 
-By default, a handful of different profiles are created, they will all have the password set to `password`, but you can easily log in as the administrative user, and use the bundled User Switching plugin to swap between users in testing. The available users, and their roles are as follows:
-- `admin` - The network administrator of the local environment.
-- `pluginauthor` - A plugin author forum account.
-- `plugincontributor` - A plugin contributor forum account.
-- `pluginsupport` - A plugin support representative forum account.
-- `themeauthor` - A theme author forum account.
-- `visitor` - A regular site visitor/user account.
+By default, an administrative account is created with the username `admin`, and password of `password`.
 
 ### Stopping the environment
 Run `npm run wp-env stop` to stop the environment without deleting your data.

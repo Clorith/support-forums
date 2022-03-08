@@ -313,7 +313,7 @@ class Hooks {
 	 * Redirect legacy urls to their new permastructure.
 	 *  - /users/$id & /profile/$slug to /users/$slug
 	 *  - /users/profile/* => /users/$slug/*
-	 * 
+	 *
 	 * See also: Support_Compat in inc/class-support-compat.php
 	 */
 	public function redirect_legacy_urls() {
@@ -607,7 +607,7 @@ class Hooks {
 		// Single topic.
 		if ( bbp_is_single_topic() ) {
 			$topic_id = bbp_get_topic_id();
-	
+
 			// Prepend label if thread is closed.
 			if ( bbp_is_topic_closed( $topic_id ) ) {
 				/* translators: %s: Excerpt of the topic's first post. */
@@ -1251,7 +1251,7 @@ class Hooks {
 
 		return $content;
 	}
-	
+
 	/**
 	 * Alter the bbPress topic freshness links to use the date in the title attribute rather than thread title.
 	 */
@@ -1284,7 +1284,7 @@ class Hooks {
 	}
 
 	/**
-	 * Filter the topic subscription message to 
+	 * Filter the topic subscription message to
 	 */
 	public function bbp_subscription_mail_message( $message, $reply_id, $topic_id ) {
 		$reply_author_name = bbp_get_reply_author_display_name( $reply_id );

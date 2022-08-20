@@ -20,6 +20,8 @@ jobs:
         run: |
           php --version
           composer --version
+          node --version
+          npm --version
 
       - name: Cache Composer dependencies
         uses: actions/cache@v1

@@ -32,7 +32,7 @@
 					"version": "1",
 					"source": {
 						"type": "svn",
-						"url": "https://meta.svn.wordpress.org/sites/",
+						"url": "https://meta.svn.wordpress.org/sites",
 						"reference": "trunk/wordpress.org/public_html/wp-content/themes/pub/wporg/"
 					}
 				},
@@ -42,7 +42,7 @@
 					"version": "1",
 					"source": {
 						"type": "svn",
-						"url": "https://meta.svn.wordpress.org/sites/",
+						"url": "https://meta.svn.wordpress.org/sites",
 						"reference": "trunk/wordpress.org/public_html/wp-content/mu-plugins/pub/"
 					}
 				},
@@ -52,7 +52,7 @@
 					"version": "1",
 					"source": {
 						"type": "svn",
-						"url": "https://meta.svn.wordpress.org/sites/",
+						"url": "https://meta.svn.wordpress.org/sites",
 						"reference": "trunk/wordpress.org/public_html/wp-content/plugins/plugin-directory/"
 					}
 				},
@@ -62,7 +62,7 @@
 					"version": "1",
 					"source": {
 						"type": "svn",
-						"url": "https://meta.svn.wordpress.org/sites/",
+						"url": "https://meta.svn.wordpress.org/sites",
 						"reference": "trunk/wordpress.org/public_html/wp-content/plugins/theme-directory/"
 					}
 				}

@@ -24,7 +24,7 @@ After cloning this repository, you will need to run the following commands:
 
 The global header and footer for WordPress.org needs to be built separately within the environment:
 
-- Navigate to `public_html/wpo-content/mu-plugins/wporg-mu-plugins/`.
+- Navigate to `public_html/wp-content/mu-plugins/wporg-mu-plugins/`.
 - Run `npm install` to install the local build tools for this plugin.
 - Run `npm run build` to build the global header and footer.
 
@@ -50,10 +50,13 @@ For subsequent runs, you can just use `npm run wp-env start` to start the enviro
 
 By default, a handful of different profiles are created, they will all have the password set to `password`, but you can easily log in as the administrative user, and use the bundled User Switching plugin to swap between users in testing. The available users, and their roles are as follows:
 - `admin` - The network administrator of the local environment.
+- `keymaster` - A support forum keymaster (top level admin) account.
+- `moderator` - A moderator user on the forums.
 - `pluginauthor` - A plugin author forum account.
 - `plugincontributor` - A plugin contributor forum account.
 - `pluginsupport` - A plugin support representative forum account.
 - `themeauthor` - A theme author forum account.
+- `themesupport` - A theme support representative forum account (unused at this time).
 - `visitor` - A regular site visitor/user account.
 
 ### Stopping the environment

@@ -175,6 +175,21 @@ function wporg_support_breadcrumb() {
 }
 add_filter( 'bbp_before_get_breadcrumb_parse_args', 'wporg_support_breadcrumb' );
 
+add_filter(
+	'bbp_breadcrumbs',
+	/**
+	 * Filters the breadcrumbs to replace the home URL with the forums page.
+	 */
+	function( $crumbs ) {
+		foreach ( $crumbs as $i => $link ) {
+			if ( str_contains( $link, 'bbp-breadcrumb-home' ) ) {
+				$crumbs[ $i ] = str_replace( home_url(), home_url( '/forums/' ), $link );
+			}
+		}
+		return $crumbs;
+	}
+);
+
 /**
  * Customize arguments for Subscribe/Unsubscribe link.
  *
@@ -354,16 +369,32 @@ function wporg_support_get_slack_username( $user_id = 0 ) {
 	global $wpdb;
 
 	$user_id = bbp_get_user_id( $user_id );
-	$slack_username = '';
 
-	$data = $wpdb->get_var( $wpdb->prepare( "SELECT profiledata FROM slack_users WHERE user_id = %d", $user_id ) );
+	$data = wp_cache_get( "user_id:$user_id", 'slack_data' );
+	if ( false === $data ) {
+		$data = $wpdb->get_var( $wpdb->prepare( "SELECT profiledata FROM slack_users WHERE user_id = %d", $user_id ) );
+
+		// Cache nonexistence as an empty string.
+		wp_cache_add( "user_id:$user_id", (string) $data, 'slack_data', 1800 );
+	}
+
 	if ( $data && ( $data = json_decode( $data, true ) ) ) {
-		if ( isset( $data['profile']['display_name'] ) ) {
-			$slack_username = $data['profile']['display_name'];
+		if ( ! empty( $data['deleted'] ) ) {
+			return false;
+		}
+
+		// Optional Display Name field
+		if ( ! empty( $data['profile']['display_name'] ) ) {
+			return $data['profile']['display_name'];
+		}
+
+		// Fall back to "Full Name" field.
+		if ( ! empty( $data['profile']['real_name'] ) ) {
+			return $data['profile']['real_name'];
 		}
 	}
 
-	return $slack_username;
+	return false;
 }
 
 /**
@@ -783,6 +814,46 @@ function wporg_support_set_is_single_on_single_replies( $args ) {
 	return $args;
 }
 add_filter( 'bbp_after_theme_compat_reset_post_parse_args', 'wporg_support_set_is_single_on_single_replies' );
+
+/**
+ * Add query vars
+ */
+function wporg_add_query_vars( array $vars ) : array {
+	// For https://wordpress.org/support/users/foo/edit/account/.
+	// See `site-support.php` for the rewrite rule.
+	$vars[] = 'edit_account';
+
+	return $vars;
+}
+add_filter( 'query_vars', 'wporg_add_query_vars' );
+
+/**
+ * Detect if the current request is for editing a bbPress Account
+ *
+ * The Account screen is a custom modification where the security settings are moved to a separate screen.
+ */
+function wporg_bbp_is_single_user_edit_account() : bool {
+	global $wp_query;
+
+	return $wp_query->get( 'bbp_user', false ) && $wp_query->get( 'edit_account', false );
+}
+
+/**
+ * Determine if the current request is to show a profile.
+ *
+ * This is necessary because `bbp_parse_query()` assumes that the current page is a Profile if it doesn't match
+ * any of the other built-in pages, rather than checking that the current page actually is a request for a profile.
+ */
+function wporg_is_single_user_profile( bool $is_single_user_profile ) : bool {
+	// True for https://wordpress.org/support/users/foo/ but not https://wordpress.org/support/users/foo/edit/account/.
+	// See `site-support.php` for the rewrite rule.
+	if ( $is_single_user_profile ) {
+			$is_single_user_profile = ! wporg_bbp_is_single_user_edit_account();
+	}
+
+	return $is_single_user_profile;
+}
+add_filter( 'bbp_is_single_user_profile', 'wporg_is_single_user_profile' );
 
 
 /** bb Base *******************************************************************/

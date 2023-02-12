@@ -67,6 +67,10 @@ npm run wp-env run cli "wp user set-role pluginsupport subscriber --url=localhos
 
 # Add `Hello Dolly` as a plugin.
 npm run wp-env run cli "wp post create --post_type=plugin --post_status=publish --post_author=4 --post_title='Hello Dolly' --post_date='2022-08-20 01:00:00' --post_modified='2022-08-20 01:00:00' --post_modified_gmt='2022-08-20 01:00:00' --url=localhost:8888/plugins"
+# Assign users to various roles for the plugin
+npm run wp-env run cli "wp post term add 3 plugin_committers pluginauthor --url=localhost:8888/plugins"
+npm run wp-env run cli "wp post term add 3 plugin_contributors plugincontributor --url=localhost:8888/plugins"
+npm run wp-env run cli "wp post term add 3 plugin_support_reps pluginsupport --url=localhost:8888/plugins"
 
 ###
 # Set up the `themes` sub-site with associated content.

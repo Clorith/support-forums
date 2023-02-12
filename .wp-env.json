@@ -8,6 +8,7 @@
 		"WPORG_SUPPORT_FORUMS_BLOGID": "1",
 		"WPORG_PLUGIN_DIRECTORY_BLOGID": "2",
 		"WPORG_THEME_DIRECTORY_BLOGID": "3",
+		"PLUGINS_TABLE_PREFIX": "wp_2_",
 		"JETPACK_DEV_DEBUG": true
 	},
 	"core": "WordPress/WordPress#master",

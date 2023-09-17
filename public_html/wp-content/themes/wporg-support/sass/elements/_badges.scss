@@ -23,7 +23,7 @@
 }
 
 .type-reported_topics {
-	box-shadow: 4px 0 0 #fff, 6px 0 0 $color__thread-reporter;
+	border-right: 2px solid $color__thread-reporter;
 }
 
 .author-badge {
@@ -55,7 +55,7 @@
 
 .author-badge-reporter {
 	background-color: $color__thread-reporter;
-	right: -4px;
+	right: -2px;
 	left: initial;
 	border-radius: 2px 0 0 2px;
 }

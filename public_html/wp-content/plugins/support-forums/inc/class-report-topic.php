@@ -9,6 +9,8 @@ class Report_Topic {
 	 */
 	private $frontend_notices = array();
 
+	private $report_inline_notices = array();
+
 	public function __construct() {
 		add_action( 'wporg_support_after_topic_info', array( $this, 'add_sidebar_form' ) );
 
@@ -17,11 +19,12 @@ class Report_Topic {
 
 		add_action( 'set_object_terms', array( $this, 'detect_manual_modlook' ), 10, 6 );
 		add_action( 'init', array( $this, 'capture_topic_report' ) );
+		add_action( 'wp', array( $this, 'capture_topic_report_response' ) );
 
 		add_filter( 'bbp_after_has_replies_parse_args', array( $this, 'maybe_include_reports' ) );
 		add_action( 'bbp_theme_before_reply_author_details', array( $this, 'show_report_author_badge' ) );
 
-		add_filter( 'bbp_get_reply_content', array( $this, 'append_report_category' ) );
+		add_filter( 'bbp_get_reply_content', array( $this, 'append_report_meta' ) );
 	}
 
 	/**
@@ -59,9 +62,20 @@ class Report_Topic {
 	 * @param string $content The post content.
 	 * @return string
 	 */
-	public function append_report_category( $content ) {
+	public function append_report_meta( $content ) {
 		if ( 'reported_topics' !== get_post_type() ) {
 			return $content;
+		}
+
+		if ( isset( $this->report_inline_notices[ get_the_ID() ] ) && ! empty( $this->report_inline_notices[ get_the_ID() ] ) ) {
+			foreach ( $this->report_inline_notices[ get_the_ID() ] as $notice ) {
+				$message = sprintf(
+					'<div class="notice notice-inline notice-warning"><p>%s</p></div>',
+					esc_html( $notice )
+				);
+
+				$content = $message . $content;
+			}
 		}
 
 		$reasons = get_the_terms( get_the_ID(), 'report_reasons' );
@@ -81,7 +95,148 @@ class Report_Topic {
 			);
 		}
 
+		$replies = get_comments( array(
+			'post_id' => get_the_ID(),
+		) );
+
+		foreach ( $replies as $reply ) {
+			if ( current_user_can( 'moderate' ) ) {
+				$reply_meta = sprintf(
+					// translators: 1: The display-name of the reporter, as a link to their user profile. 2: date
+					__( 'Reply from %1$s on %2$s', 'wporg-forums' ),
+					sprintf(
+						'<a href="%s">%s</a>',
+						esc_url( bbp_get_user_profile_url( $reply->user_id ) ),
+						esc_html( get_the_author_meta( 'display_name', $reply->user_id ) )
+					),
+					esc_html( get_comment_time( '', false, true, $reply->comment_ID ) )
+				);
+			} else {
+				$reply_meta = sprintf(
+					// translators: 1: The display-name of the reporter, as a link to their user profile. 2: date
+					__( 'Reply from moderator on %1$s', 'wporg-forums' ),
+					esc_html( get_comment_time( '', false, true, $reply->comment_ID ) )
+				);
+			}
+
+			$content .= sprintf(
+				'<div class="topic-report-reply">%s<div class="topic-report-reply-meta">%s</div></div>',
+				$reply->comment_content,
+				$reply_meta
+			);
+		}
+
+		// We want to avoid a back and forth situation, so only accept replies when there are none.
+		if ( empty( $replies ) && current_user_can( 'moderate' ) ) {
+			$nonce_action = sprintf(
+				'topic_report_reply_%d',
+				bbp_get_reply_id()
+			);
+
+			$content .= sprintf(
+				'<hr>
+				<form action="%s" method="post" class="topic-report-reply-form">
+					%s<input type="hidden" name="wporg-support-report-topic" value="%d">
+					<p>%s</p>
+					<textarea name="topic-report-reply" id="topic-report-reply" class="widefat" required="required"></textarea>
+					<div class="topic-report-reply-form-actions"><button type="submit" class="button button-primary">%s</button></div>
+				</form>',
+				esc_url( bbp_get_reply_url() ),
+				wp_nonce_field( $nonce_action, '_wpnonce', true, false ),
+				esc_attr( bbp_get_reply_id() ),
+				__( 'Reply to this report:', 'wporg-forums' ),
+				__( 'Send response', 'wporg-forums' )
+			);
+		}
+
 		return $content;
+	}
+
+	/**
+	 * Handle the response action when a report has been responded to.
+	 *
+	 * @return void
+	 */
+	public function capture_topic_report_response() {
+		// Don't start doing expensive lookups if this is not a reply action.
+		if ( empty( $_POST['topic-report-reply'] ) ) {
+			return;
+		}
+
+		// Do not process anything if the user is not logged in with the appropriate capabilities.
+		if ( ! is_user_logged_in() || ! current_user_can( 'moderate' ) ) {
+			return;
+		}
+
+		$nonce_action = sprintf(
+			'topic_report_reply_%d',
+			(int) $_POST['wporg-support-report-topic']
+		);
+
+		// Verify the nonce  to acknowledge the action.
+		if ( ! wp_verify_nonce( $_POST['_wpnonce'], $nonce_action ) ) {
+			return;
+		}
+
+		$report = get_post( (int) $_POST['wporg-support-report-topic'] );
+
+		// Ensure this is a report post type being replied to.
+		if ( 'reported_topics' !== get_post_type( $report ) ) {
+			return;
+		}
+
+		// Verify that we are posting to a report that does not already have replies
+		if ( (int) get_comments_number( $report ) > 0 ) {
+			if ( ! isset( $this->report_inline_notices[ $report->ID ] ) ) {
+				$this->report_inline_notices[ $report->ID ] = array();
+			}
+
+			$this->report_inline_notices[ $report->ID ][] = __( 'Your reply has not been sent, as a response was already submitted by another moderator.', 'wporg-forums' );
+
+			return;
+		}
+
+		$prepared_post = wp_kses_post( $_POST['topic-report-reply'] );
+
+		wp_insert_comment(
+			array(
+				'comment_content' => $prepared_post,
+				'comment_post_ID' => $report->ID,
+				'user_id'         => get_current_user_id(),
+			)
+		);
+
+		$email_text = sprintf(
+			__( '%1$s,
+
+You recently reported the topic "%2$s".
+
+A moderator has reviewed the report, taken appropriate action, and provided you the following feedback:
+
+%3$s
+
+Regards,
+The WordPress.org Team',
+				'wporg-forums'
+			),
+			bbp_get_user_nicename( $report->post_author ),
+			bbp_get_topic_title(),
+			$prepared_post
+		);
+
+		$reporter = get_userdata( $report->post_author );
+
+		// Send a response notification to the reporter.
+		wp_mail(
+			$reporter->user_email,
+			__( 'A topic you reported has been reviewed', 'wporg-forums' ),
+			$email_text
+		);
+
+		// The report has been resolved, so remove the modlook tag.
+		wp_remove_object_terms( get_the_ID(), 'modlook', 'topic-tag' );
+
+		$this->report_inline_notices[ $report->ID ][] = __( 'Your response to the report has been stored, and a copy has been emailed to the reporter.', 'wporg-forums' );
 	}
 
 	/**
@@ -97,8 +252,8 @@ class Report_Topic {
 
 		printf(
 			'<span class="author-badge author-badge-reporter" title="%s">%s</span>',
-			esc_attr__( 'This entry displays the reason for reporting this topic' ),
-			esc_html__( 'Report', 'wporg-forums' )
+			esc_attr__( 'This entry displays the reason for reporting this topic', 'wporg-forums' ),
+			esc_html__( 'Topic report', 'wporg-forums' )
 		);
 	}
 
@@ -320,7 +475,7 @@ class Report_Topic {
 		}
 
 		// Translators: Default string to show when a topic is reported outside the report form feature.
-		$this->add_modlook_history( $object_id, __( '[This report was manually submitted using a topic-tag while submitting a reply]', 'wporg-forums' ), true );
+		$this->add_modlook_history( $object_id, __( '[This report was manually submitted using a topic-tag while submitting a reply]', 'wporg-forums' ) );
 	}
 
 	/**
@@ -350,13 +505,19 @@ class Report_Topic {
 			),
 		);
 
-		if ( null !== $reason_term ) {
-			$new_report['tax_input'] = array(
-				'report_reasons' => array( $reason_term )
-			);
-		}
+		$new_report_id = wp_insert_post( $new_report );
 
-		wp_insert_post( $new_report );
+		/*
+		 * Assign the report taxonomy after the report post is created
+		 *
+		 * This is not applied during `wp_insert_post` and its report array due
+		 * to how WordPress checks capabilities for the `input_tax`, and anyone
+		 * creating a report is unlikely to have the capabilities attached to
+		 * the post type or taxonomy.
+		 */
+		if ( null !== $reason_term && ! is_wp_error( $new_report_id ) && $new_report_id > 0 ) {
+			wp_set_post_terms( $new_report_id, array( $reason_term ), 'report_reasons' );
+		}
 	}
 
 	/**
@@ -381,19 +542,19 @@ class Report_Topic {
 				return;
 			}
 
+			if ( empty( $_POST['topic-report-reason-details'] ) ) {
+				$this->add_frontend_notice(
+					'error',
+					__( 'You must supply a reason when reporting a topic', 'wporg-forums' )
+				);
+				return;
+			}
+
 			$validate_term = get_term( (int) $_POST['topic-report-reason'], 'report_reasons' );
 			if ( null === $validate_term || is_wp_error( $validate_term ) ) {
 				$this->add_frontend_notice(
 					'error',
 					__( 'You must choose a categorization for this report from the drop-down menu.', 'wporg-forums' )
-				);
-				return;
-			}
-
-			if ( empty( $_POST['topic-report-reason-details'] ) ) {
-				$this->add_frontend_notice(
-					'error',
-					__( 'You must supply a reason when reporting a topic', 'wporg-forums' )
 				);
 				return;
 			}
@@ -465,7 +626,7 @@ class Report_Topic {
 				bbp_get_topic_id()
 			);
 
-			$terms = get_terms(
+			$has_terms = get_terms(
 				array(
 					'taxonomy'   => 'report_reasons',
 					'hide_empty' => false,
@@ -473,16 +634,8 @@ class Report_Topic {
 				)
 			);
 
-			if ( ! $terms ) {
+			if ( ! $has_terms ) {
 				$this->create_initial_report_taxonomies();
-
-				$terms = get_terms(
-					array(
-						'taxonomy'   => 'report_reasons',
-						'hide_empty' => false,
-						'orderby'    => 'term_id',
-					)
-				);
 			}
 
 			ob_start();

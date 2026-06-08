@@ -8,10 +8,6 @@
 # Topic reports
 --------------------------------------------------------------*/
 
-#bbpress-forums .type-reported_topics {
-	background-color: #ffacac;
-}
-
 #bbpress-forums .type-reported_topics .topic-report-reply {
 	border: 2px solid #33b4ce;
 	padding: 8px;
@@ -28,4 +24,9 @@
 }
 #bbpress-forums .type-reported_topics .topic-report-reply-form .topic-report-reply-form-actions {
 	text-align: right;
+}
+
+body.single-topic:not(body.topic-edit) .entry-content #bbpress-forums div.odd.type-reported_topics:not(.topic) ,
+body.single-topic:not(body.topic-edit) .entry-content #bbpress-forums div.even.type-reported_topics:not(.topic) {
+	background-color: #fdd;
 }

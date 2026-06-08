@@ -63,6 +63,9 @@ class Performance_Optimizations {
 		add_filter( 'pre_count_users', array( $this, 'cache_count_users' ), 10, 3 );
 		// ..and don't do expensive orderbys & counting for user queries that don't need it.
 		add_action( 'pre_get_users', array( $this, 'pre_get_users' ) );
+
+		// Disable feeds for non-existent views. See https://bbpress.trac.wordpress.org/ticket/3544
+		add_action( 'bbp_request', array( $this, 'bbp_request_disable_missing_view_feeds' ), 9 ); // Before bbp_request_feed_trap().
 	}
 
 	/**
@@ -274,8 +277,8 @@ class Performance_Optimizations {
 					unset( $r['meta_key'] );
 					unset( $r['meta_type'] );
 					$r['orderby'] = 'ID';
-				// Some views use meta key lookups and should only look at known
-				// open topics.
+					// Some views use meta key lookups and should only look at known
+					// open topics.
 				} elseif ( ! empty( $r['meta_key'] ) ) {
 					$r['orderby'] = 'ID';
 					add_filter( 'posts_where', array( $this, 'posts_in_last_six_months' ) );
@@ -330,7 +333,7 @@ class Performance_Optimizations {
 
 	public function enqueue_styles() {
 		if ( current_user_can( 'participate' ) ) {
-			wp_enqueue_style( 'support-forums-participants', plugins_url( 'css/styles-participants.css', __DIR__ ), array(), '20211105' );
+			wp_enqueue_style( 'support-forums-participants', plugins_url( 'css/styles-participants.css', __DIR__ ), array(), '20230919' );
 		}
 	}
 
@@ -562,7 +565,7 @@ class Performance_Optimizations {
 
 	/**
 	 * Cache the result of `count_users()` as the Support Forums site has a lot of users.
-	 * 
+	 *
 	 * This slows wp-admin/users.php down so much that it's hard to use when required.
 	 * As these numbers don't change often, it's cached for 24hrs hours, which avoids a 20-60s query on each users.php pageload.
 	 */
@@ -600,7 +603,7 @@ class Performance_Optimizations {
 	/**
 	 * Filter use queries to be more performant, as the default WordPress user queries
 	 * just don't scale to several million users here.
-	 * 
+	 *
 	 * @param \WP_User_Query $query
 	 */
 	public function pre_get_users( $query ) {
@@ -634,5 +637,30 @@ class Performance_Optimizations {
 		if ( $query->query_vars['blog_id'] && ! $is_role_related ) {
 			$query->query_vars['blog_id'] = false;
 		}
+	}
+
+	/**
+	 * Disable feeds for missing bbPress views.
+	 *
+	 * @see https://bbpress.trac.wordpress.org/ticket/3544
+	 *
+	 * @param array $query_vars
+	 * @return array
+	 */
+	public function bbp_request_disable_missing_view_feeds( $query_vars ) {
+		$view_id = bbp_get_view_rewrite_id();
+
+		if (
+			isset( $query_vars['feed'] ) &&
+			isset( $query_vars[ $view_id ] ) &&
+			! bbp_get_view_query_args( $query_vars[ $view_id ] )
+		) {
+			unset( $query_vars[ $view_id ] );
+
+			// Set a 404 status, without this bbPress is unsure of what to do.
+			$query_vars['error'] = 404;
+		}
+
+		return $query_vars;
 	}
 }

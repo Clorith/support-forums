@@ -69,6 +69,16 @@
 						"url": "https://meta.svn.wordpress.org/sites",
 						"reference": "trunk/wordpress.org/public_html/wp-content/plugins/theme-directory/"
 					}
+				},
+				{
+					"name": "wporg/wporg-parent-2021",
+					"type": "wordpress-theme",
+					"version": "1",
+					"source": {
+						"type": "git",
+						"url": "https://github.com/WordPress/wporg-parent-2021.git",
+						"reference": "build"
+					}
 				}
 			]
 		},
@@ -85,6 +95,7 @@
 		"wordpress-meta/plugin-directory": "1",
 		"wordpress-meta/theme-directory": "1",
 		"wporg/wporg-mu-plugins": "dev-trunk",
+		"wporg/wporg-parent-2021": "1",
 		"wpackagist-plugin/bbpress": "*",
 		"wpackagist-plugin/jetpack": "10.2.1"
 	},

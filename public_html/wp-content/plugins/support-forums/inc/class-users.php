@@ -2,6 +2,8 @@
 
 namespace WordPressdotorg\Forums;
 
+use WordPressdotorg\Forums\User_Moderation\Plugin as User_Moderation;
+
 class Users {
 
 	public function __construct() {
@@ -9,6 +11,7 @@ class Users {
 		add_action( 'bbp_user_edit_after_name',         array( $this, 'add_custom_title_input' ) );
 		add_action( 'bbp_user_edit_after',              array( $this, 'add_options_section_header' ), 0 );
 		add_action( 'bbp_user_edit_after',              array( $this, 'add_auto_topic_subscription_checkbox' ) );
+		add_action( 'bbp_user_edit_after_role',         array( $this, 'add_modwatch_checkbox' ) );
 
 		// Save custom field values.
 		add_action( 'personal_options_update',          array( $this, 'save_custom_fields' ), 10, 2 );
@@ -50,6 +53,10 @@ class Users {
 		add_action( 'bbp_unapproved_topic',             array( $this, 'clear_user_topics_count_cache' ) );
 		add_action( 'wporg_bbp_archived_topic',         array( $this, 'clear_user_topics_count_cache' ) );
 		add_action( 'wporg_bbp_unarchived_topic',       array( $this, 'clear_user_topics_count_cache' ) );
+
+		// Add bulk topic unsubscribe.
+		add_action( 'bbp_template_before_user_subscriptions', array( $this, 'bulk_topic_unsubscribe_process' ) );
+		add_action( 'bbp_template_after_user_subscriptions', array( $this, 'bulk_topic_unsubscribe' ) );
 	}
 
 	/**
@@ -79,10 +86,10 @@ class Users {
 
 		$title = get_user_option( 'title', bbp_get_displayed_user_id() );
 		?>
-		<div>
-			<label for="title"><?php esc_html_e( 'Custom Title', 'wporg-forums' ); ?></label>
-			<input type="text" name="title" id="title" value="<?php echo esc_attr( $title ); ?>" class="regular-text" />
-		</div>
+        <div>
+            <label for="title"><?php esc_html_e( 'Custom Title', 'wporg-forums' ); ?></label>
+            <input type="text" name="title" id="title" value="<?php echo esc_attr( $title ); ?>" class="regular-text" />
+        </div>
 		<?php
 	}
 
@@ -102,10 +109,34 @@ class Users {
 	public function add_auto_topic_subscription_checkbox() {
 		$auto_topic_subscription = get_user_option( 'auto_topic_subscription', bbp_get_displayed_user_id() );
 		?>
-		<p>
-			<input name="auto_topic_subscription" id="auto_topic_subscription" type="checkbox" value="yes" <?php checked( $auto_topic_subscription ); ?> />
-			<label for="auto_topic_subscription"><?php esc_html_e( 'Always notify me via email of follow-up posts in any topics I reply to', 'wporg-forums' ); ?></label>
-		</p>
+        <p>
+            <input name="auto_topic_subscription" id="auto_topic_subscription" type="checkbox" value="yes" <?php checked( $auto_topic_subscription ); ?> />
+            <label for="auto_topic_subscription"><?php esc_html_e( 'Always notify me via email of follow-up posts in any topics I reply to', 'wporg-forums' ); ?></label>
+        </p>
+		<?php
+	}
+
+	/**
+	 * Add a modwatch checkbox to user's profile.
+	 */
+	public function add_modwatch_checkbox() {
+		// Only show to moderators.
+		if ( ! current_user_can( 'moderate' ) ) {
+			return;
+		}
+
+		$user_id         = bbp_get_user_id();
+        $user_moderation = User_Moderation::get_instance();
+
+		$modwatch = $user_moderation->is_user_flagged( $user_id );
+		?>
+		<div>
+            <label for="flag_user_modwatch"><?php esc_html_e( 'Flag user', 'wporg-forums' ); ?></label>
+            <select name="flag_user_modwatch" id="flag_user_modwatch" >
+                <option value="yes" <?php selected( $modwatch, 'yes' ); ?>>This users posts require manual approval</option>
+                <option value="no" <?php selected( $modwatch, 'no' ); ?>>User can post normally</option>
+            </select>
+		</div>
 		<?php
 	}
 
@@ -121,6 +152,17 @@ class Users {
 
 		$auto_topic_subscription = isset( $_POST['auto_topic_subscription'] );
 		update_user_option( $user_id, 'auto_topic_subscription', $auto_topic_subscription );
+
+        $user_moderation = User_Moderation::get_instance();
+
+        // Flag user for moderation.
+		if ( current_user_can( 'moderate' ) && isset( $_POST['flag_user_modwatch'] ) ) {
+			if ( ! $user_moderation->is_user_flagged( $user_id ) ) {
+                $user_moderation->flag_user( $user_id );
+			}
+		} else {
+            $user_moderation->unflag_user( $user_id );
+		}
 	}
 
 	public function modify_user_fields( $value, $field, $filter ) {
@@ -349,9 +391,9 @@ class Users {
 	public function parse_user_topics_query( $query ) {
 		if (
 			get_query_var( 'wporg_single_user_reviews' )
-		||
+			||
 			get_query_var( 'wporg_single_user_topics_replied_to' )
-		||
+			||
 			get_query_var( 'wporg_single_user_reported_topics' )
 		) {
 			$query->bbp_is_single_user_profile = false;
@@ -605,6 +647,38 @@ class Users {
 			wp_cache_delete( $post->post_author, 'user-topics-count' );
 		} else {
 			wp_cache_delete( $post->post_author, 'user-reviews-count' );
+		}
+	}
+
+	/**
+	 * Allow bulk unsubscribe from all topics.
+	 */
+	public function bulk_topic_unsubscribe() {
+		$user_id = bbp_get_displayed_user_id();
+		if ( ! bbp_is_user_home() && ! current_user_can( 'edit_user', $user_id ) ) {
+			return;
+		}
+		if ( ! bbp_get_user_topic_subscriptions() ) {
+			return;
+		}
+
+		echo '<form method="post" style="margin-top: -2em;margin-bottom: 1em;">';
+		wp_nonce_field( 'bulk_unsubscribe_' . $user_id );
+		echo '<input type="submit" name="bulk-topic-unsub" class="button" value="' . esc_attr__( 'Unsubscribe from all topics', 'wporg-forums' ) . '">';
+		echo '</form>';
+	}
+
+	/**
+	 * Bulk topic unsubscription handler for `bulk_topic_unsubscribe()`.
+	 */
+	public function bulk_topic_unsubscribe_process() {
+		$user_id = bbp_get_displayed_user_id();
+		if (
+			isset( $_POST['bulk-topic-unsub'], $_POST['_wpnonce'] ) &&
+			( bbp_is_user_home() || current_user_can( 'edit_user', $user_id ) ) &&
+			wp_verify_nonce( $_POST['_wpnonce'], 'bulk_unsubscribe_' . $user_id )
+		) {
+			bbp_remove_user_from_all_objects( $user_id, '_bbp_subscription' );
 		}
 	}
 

@@ -88,12 +88,25 @@ class Report_Topic {
 			$content .= sprintf(
 				'<p class="topic-report-categories">%s</p>',
 				sprintf(
-					// translators: 1: A comma-separated list of categories this report relates to.
+				// translators: 1: A comma-separated list of categories this report relates to.
 					__( 'Report category: %s', 'wporg-forums' ),
 					implode( ', ', $categories )
 				)
 			);
 		}
+
+		$content .= sprintf(
+			'<p class="topic-report-origin">%s</p>',
+			sprintf(
+			// translators: 1: The link to the original topic, with the topic title as its text.
+				__( 'Reported topic: %s', 'wporg-forums' ),
+				sprintf(
+					'<a href="%s">%s</a>',
+					esc_url( bbp_get_topic_permalink( get_post_field( 'post_parent', get_the_ID() ) ) ),
+					esc_html( bbp_get_topic_title( get_post_field( 'post_parent', get_the_ID() ) ) )
+				)
+			)
+		);
 
 		$replies = get_comments( array(
 			'post_id' => get_the_ID(),
@@ -102,20 +115,20 @@ class Report_Topic {
 		foreach ( $replies as $reply ) {
 			if ( current_user_can( 'moderate' ) ) {
 				$reply_meta = sprintf(
-					// translators: 1: The display-name of the reporter, as a link to their user profile. 2: date
+				// translators: 1: The display-name of the reporter, as a link to their user profile. 2: date
 					__( 'Reply from %1$s on %2$s', 'wporg-forums' ),
 					sprintf(
 						'<a href="%s">%s</a>',
 						esc_url( bbp_get_user_profile_url( $reply->user_id ) ),
 						esc_html( get_the_author_meta( 'display_name', $reply->user_id ) )
 					),
-					esc_html( get_comment_time( '', false, true, $reply->comment_ID ) )
+					esc_html( get_comment_date( 'Y-m-d H:i', $reply->comment_ID ) )
 				);
 			} else {
 				$reply_meta = sprintf(
-					// translators: 1: The display-name of the reporter, as a link to their user profile. 2: date
+				// translators: 1: date
 					__( 'Reply from moderator on %1$s', 'wporg-forums' ),
-					esc_html( get_comment_time( '', false, true, $reply->comment_ID ) )
+					esc_html( get_comment_date( 'Y-m-d H:i', $reply->comment_ID ) )
 				);
 			}
 
@@ -126,7 +139,7 @@ class Report_Topic {
 			);
 		}
 
-		// We want to avoid a back and forth situation, so only accept replies when there are none.
+		// To avoid a back and forth situation, only accept a single response to a report.
 		if ( empty( $replies ) && current_user_can( 'moderate' ) ) {
 			$nonce_action = sprintf(
 				'topic_report_reply_%d',
@@ -207,6 +220,7 @@ class Report_Topic {
 		);
 
 		$email_text = sprintf(
+		// translators: 1: The users displayname. 2: The title of the reported topic. 3: The message response from a moderator.
 			__( '%1$s,
 
 You recently reported the topic "%2$s".
@@ -219,7 +233,7 @@ Regards,
 The WordPress.org Team',
 				'wporg-forums'
 			),
-			bbp_get_user_nicename( $report->post_author ),
+			get_the_author_meta( 'display_name', $report->post_author ),
 			bbp_get_topic_title(),
 			$prepared_post
 		);
@@ -300,11 +314,20 @@ The WordPress.org Team',
 				'label'             => __( 'Reported Topics', 'wporg-forums' ),
 				'description'       => __( 'User-submitted reports of support topics or reviews.', 'wporg-forums' ),
 				'public'            => false,
-				'show_ui'           => current_user_can( 'moderate' ),
+				'show_ui'           => current_user_can( 'bbp_forums_admin' ),
 				'show_in_admin_bar' => false,
 				'show_in_rest'      => false,
 				'menu_icon'         => 'dashicons-flag',
-				'capability_type'   => 'moderate',
+				'capability_type'   => array( 'forum', 'forums' ),
+				'capabilities'      => array(
+					'edit_posts'          => 'edit_forums',
+					'edit_others_posts'   => 'edit_others_forums',
+					'publish_posts'       => 'publish_forums',
+					'read_private_posts'  => 'read_private_forums',
+					'read_hidden_posts'   => 'read_hidden_forums',
+					'delete_posts'        => 'delete_forums',
+					'delete_others_posts' => 'delete_others_forums'
+				),
 				'supports'          => array( 'editor' ),
 			)
 		);
@@ -379,7 +402,7 @@ The WordPress.org Team',
 		printf(
 			'<p>%s</p>',
 			sprintf(
-				// translators: 1: Title of reported topic as a link.
+			// translators: 1: Title of reported topic as a link.
 				__( 'Reported topic: %s', 'wporg-forums' ),
 				sprintf(
 					'<a href="%s">%s</a>',
@@ -392,7 +415,7 @@ The WordPress.org Team',
 		printf(
 			'<p>%s</p>',
 			sprintf(
-				// translators: 1: Number of posts in the topic.
+			// translators: 1: Number of posts in the topic.
 				__( 'Replies in this topic: %d', 'wporg-forums' ),
 				esc_html( bbp_get_topic_reply_count( $topic ) )
 			)
@@ -401,7 +424,7 @@ The WordPress.org Team',
 		printf(
 			'<p>%s</p>',
 			sprintf(
-				// translators: 1: Number of participants in the topic.
+			// translators: 1: Number of participants in the topic.
 				__( 'Participants in this topic: %d', 'wporg-forums' ),
 				esc_html( bbp_get_topic_voice_count( $topic ) )
 			)
@@ -422,7 +445,7 @@ The WordPress.org Team',
 		printf(
 			'<p>%s</p>',
 			sprintf(
-				// translators: 1: The display-name of the reporter, as a link to their user profile.
+			// translators: 1: The display-name of the reporter, as a link to their user profile.
 				__( 'Reporter: %s', 'wporg-forums' ),
 				sprintf(
 					'<a href="%s">%s</a>',
@@ -435,7 +458,7 @@ The WordPress.org Team',
 		printf(
 			'<p>%s</p>',
 			sprintf(
-				// translators: 1: The IP address the report was submitted from.
+			// translators: 1: The IP address the report was submitted from.
 				__( 'IP Address: %s', 'wporg-forums' ),
 				esc_html( $reporter_ip )
 			)
@@ -492,7 +515,7 @@ The WordPress.org Team',
 			'post_content'   => $reason,
 			'post_status'    => 'publish',
 			'post_title'     => sprintf(
-				// translators: 1: The title of the topic being reported.
+			// translators: 1: The title of the topic being reported.
 				__( 'Topic: %s', 'wporg-forums' ),
 				get_the_title( $topic )
 			),
@@ -699,7 +722,7 @@ The WordPress.org Team',
 					'<li><a href="%s">%s</a></li>',
 					esc_url( bbp_get_reply_url( $report->ID ) ),
 					sprintf(
-						/* translators: 1: Reporters display name, 2: date */
+					/* translators: 1: Reporters display name, 2: date */
 						'%1$s on %2$s',
 						esc_html( get_the_author_meta( 'display_name', $report->post_author ) ),
 						esc_html( bbp_get_reply_post_date( $report->ID ) ),

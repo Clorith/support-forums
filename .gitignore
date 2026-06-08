@@ -27,8 +27,8 @@
 !/public_html/wp-content/plugins/wporg-bbp-user-mention-autocomplete
 !/public_html/wp-content/plugins/wporg-bbp-user-moderation
 !/public_html/wp-content/plugins/wporg-bbp-version-dropdown
-!/public_html/wp-content/themes/wporg-support
+!/public_html/wp-content/themes/wporg-support-2024
 
 # Ignore built files inside our plugins & themes.
-/public_html/wp-content/themes/wporg-support/css/*.css
-/public_html/wp-content/themes/wporg-support/css/*.map
+/public_html/wp-content/themes/wporg-support-2024/css/*.css
+/public_html/wp-content/themes/wporg-support-2024/css/*.map

@@ -6,9 +6,9 @@
 	"license": "GPL-2.0-or-later",
 	"private": true,
 	"dependencies": {
-		"@wordpress/env": "~5.2.0",
-		"@wordpress/scripts": "~23.7.2",
-		"@wordpress/stylelint-config": "~20.0.2"
+		"@wordpress/env": "~11.7.0",
+		"@wordpress/scripts": "~32.3.0",
+		"@wordpress/stylelint-config": "~23.39.0"
 	},
 	"scripts": {
 		"create": "./bin/index.sh",
